@@ -16,3 +16,14 @@ export const getUserById = async (id: string) => {
   });
   return user;
 };
+export const updateUserEmailVerified = async (id: string) => {
+  const user = await db.user.update({
+    where: {
+      id,
+    },
+    data: {
+      emailVerified: new Date(),
+    },
+  });
+  return user;
+};

@@ -69,6 +69,7 @@ export const register = async (values: z.infer<typeof RegisterSchema>) => {
     success: "An account is created",
   };
 };
+
 export const logout = async () => {
   await signOut({
     redirectTo: "/auth/login",

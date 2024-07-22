@@ -17,10 +17,13 @@ import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { FormError } from "../form-error";
 import { FormSuccess } from "../form-success";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { login } from "@/actions/auth";
+import { useSearchParams } from "next/navigation";
 
 export const LoginForm = () => {
+  const searchParams = useSearchParams();
+  const urlError = searchParams.get("error");
   const [error, setError] = useState<string | undefined>("");
   const [success, setSuccess] = useState<string | undefined>("");
   const form = useForm<z.infer<typeof LoginSchema>>({
@@ -31,13 +34,22 @@ export const LoginForm = () => {
     },
   });
   const [isPending, startTransition] = useTransition();
+  useEffect(() => {
+    if (urlError) {
+      setError(() => {
+        return urlError === "OAuthAccountNotLinked"
+          ? "Email already in use with different provider"
+          : "";
+      });
+    }
+  }, [urlError]);
 
   const onSubmit = (values: z.infer<typeof LoginSchema>) => {
     startTransition(async () => {
       try {
         const { error, success } = await login(values);
         setError(error);
-        setSuccess(success);
+        // setSuccess(success);
       } catch (error) {
       } finally {
         setTimeout(() => {
