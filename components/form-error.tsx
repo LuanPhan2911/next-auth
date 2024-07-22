@@ -14,7 +14,7 @@ export const FormError = ({ message }: FormErrorProps) => {
      gap-x-2 p-3"
     >
       <TriangleAlert className="h-5 w-5" />
-      <p>{message}</p>
+      <p className="text-sm">{message}</p>
     </div>
   );
 };
