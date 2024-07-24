@@ -1,10 +1,37 @@
 import { db } from "@/lib/db";
 import { v4 } from "uuid";
 import { getVerificationTokenByEmail } from "./verification-token";
-import { sendResetPasswordEmail, sendVerificationEmail } from "@/lib/mail";
+import {
+  sendResetPasswordEmail,
+  sendTwoFactorToken,
+  sendVerificationEmail,
+} from "@/lib/mail";
 import { getResetPasswordTokenByEmail } from "./reset-password-token";
+import { randomInt } from "crypto";
 import moment from "moment";
+import { getTwoFactorTokenByEmail } from "./two-factor-token";
 
+export const generateTwoFactorToken = async (email: string) => {
+  const token = randomInt(100_000, 1_000_000).toString();
+  const expiredAt = moment().add(5, "minute").toDate();
+  const existingToken = await getTwoFactorTokenByEmail(email);
+  if (existingToken) {
+    await db.twoFactorToken.delete({
+      where: {
+        id: existingToken.id,
+      },
+    });
+  }
+  const twoFactorToken = await db.twoFactorToken.create({
+    data: {
+      email,
+      expiredAt,
+      token,
+    },
+  });
+  sendTwoFactorToken(email, token);
+  return twoFactorToken;
+};
 export const generateVerificationToken = async (email: string) => {
   const token = v4();
   const expiredAt = new Date(new Date().getTime() + 3600 * 1000);

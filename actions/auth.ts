@@ -14,12 +14,14 @@ import { DEFAULT_LOGIN_REDIRECT } from "@/routes";
 import { AuthError } from "next-auth";
 import {
   generateResetPasswordToken,
+  generateTwoFactorToken,
   generateVerificationToken,
 } from "@/services/token";
 import bcrypt from "bcryptjs";
-import { sendVerificationEmail } from "@/lib/mail";
 import { getVerificationTokenByToken } from "@/services/verification-token";
 import { getResetPasswordTokenByToken } from "@/services/reset-password-token";
+import { getTwoFactorTokenByEmail } from "@/services/two-factor-token";
+import { getTwoFactorConfirmationByUserId } from "@/services/two-factor-confirmation";
 export const login = async (values: z.infer<typeof LoginSchema>) => {
   const validatedValues = LoginSchema.safeParse(values);
   if (!validatedValues.success) {
@@ -27,7 +29,7 @@ export const login = async (values: z.infer<typeof LoginSchema>) => {
       error: "Invalid field",
     };
   }
-  const { email, password } = validatedValues.data;
+  const { email, password, code } = validatedValues.data;
   const existingUser = await getUserByEmail(email);
   if (!existingUser || !existingUser.email || !existingUser.password) {
     return {
@@ -35,10 +37,57 @@ export const login = async (values: z.infer<typeof LoginSchema>) => {
     };
   }
   if (!existingUser.emailVerified) {
-    const verificationToken = await generateVerificationToken(email);
+    await generateVerificationToken(email);
     return {
       success: "Please check your email to confirm email!",
     };
+  }
+  if (existingUser.isTwoFactorEnabled) {
+    if (code) {
+      const twoFactorToken = await getTwoFactorTokenByEmail(existingUser.email);
+      if (!twoFactorToken) {
+        return {
+          error: "Invalid code!",
+        };
+      }
+      if (twoFactorToken.token !== code) {
+        return {
+          error: "Invalid code!",
+        };
+      }
+      const hasExpired = new Date(twoFactorToken.expiredAt) < new Date();
+      if (hasExpired) {
+        return {
+          error: "Code is expired!",
+        };
+      }
+
+      await db.twoFactorToken.delete({
+        where: {
+          id: twoFactorToken.id,
+        },
+      });
+      const existingConfirmation = await getTwoFactorConfirmationByUserId(
+        existingUser.id
+      );
+      if (existingConfirmation) {
+        await db.twoFactorConfirmation.delete({
+          where: {
+            id: existingConfirmation.id,
+          },
+        });
+      }
+      await db.twoFactorConfirmation.create({
+        data: {
+          userId: existingUser.id,
+        },
+      });
+    } else {
+      await generateTwoFactorToken(existingUser.email);
+      return {
+        twoFactor: true,
+      };
+    }
   }
 
   try {
@@ -56,10 +105,6 @@ export const login = async (values: z.infer<typeof LoginSchema>) => {
         case "CredentialsSignin":
           return {
             error: "Email or password incorrect!",
-          };
-        case "AuthorizedCallbackError":
-          return {
-            error: "Please check email verification!",
           };
         default:
           return {
