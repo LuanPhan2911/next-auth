@@ -2,7 +2,7 @@ import NextAuth, { DefaultSession } from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import authConfig from "./auth.config";
 import { db } from "./lib/db";
-import { getUserById, updateUserEmailVerified } from "./services/user";
+import { getUserById, updateUserEmailVerifiedById } from "./services/user";
 import { UserRole } from "@prisma/client";
 
 declare module "next-auth" {
@@ -22,11 +22,18 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
   session: { strategy: "jwt" },
   events: {
     linkAccount: async ({ user }) => {
-      await updateUserEmailVerified(user.id);
+      await updateUserEmailVerifiedById(user.id);
     },
   },
   callbacks: {
-    signIn: async ({ user }) => {
+    signIn: async ({ user, account }) => {
+      if (account?.provider !== "credentials") {
+        return true;
+      }
+      const existingUser = await getUserById(user.id);
+      if (!existingUser?.emailVerified) {
+        return false;
+      }
       return true;
     },
     session: async ({ session, token }) => {

@@ -20,6 +20,7 @@ import { FormSuccess } from "../form-success";
 import { useEffect, useState, useTransition } from "react";
 import { login } from "@/actions/auth";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 
 export const LoginForm = () => {
   const searchParams = useSearchParams();
@@ -49,7 +50,7 @@ export const LoginForm = () => {
       try {
         const { error, success } = await login(values);
         setError(error);
-        // setSuccess(success);
+        setSuccess(success);
       } catch (error) {
       } finally {
         setTimeout(() => {
@@ -93,10 +94,20 @@ export const LoginForm = () => {
             name="password"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Password</FormLabel>
+                <div className="flex justify-between items-center">
+                  <FormLabel>Password</FormLabel>
+                  <Button
+                    size={"sm"}
+                    variant={"link"}
+                    asChild
+                    className="font-semibold"
+                  >
+                    <Link href={"/auth/reset-password"}>Forgot password?</Link>
+                  </Button>
+                </div>
                 <FormControl>
                   <Input
-                    placeholder="123456"
+                    placeholder="********"
                     {...field}
                     type="password"
                     disabled={isPending}

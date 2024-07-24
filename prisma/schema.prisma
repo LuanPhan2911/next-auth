@@ -51,3 +51,25 @@ model Account {
 
   @@id([provider, providerAccountId])
 }
+
+model VerificationToken {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  expiredAt DateTime
+
+  @@unique([email, token])
+}
+
+model ResetPasswordToken {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  count     Int      @default(1)
+  isUsed    Boolean  @default(false)
+  expiredAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([email, token])
+}
