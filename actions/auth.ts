@@ -22,7 +22,10 @@ import { getVerificationTokenByToken } from "@/services/verification-token";
 import { getResetPasswordTokenByToken } from "@/services/reset-password-token";
 import { getTwoFactorTokenByEmail } from "@/services/two-factor-token";
 import { getTwoFactorConfirmationByUserId } from "@/services/two-factor-confirmation";
-export const login = async (values: z.infer<typeof LoginSchema>) => {
+export const login = async (
+  values: z.infer<typeof LoginSchema>,
+  callbackUrl?: string | null
+) => {
   const validatedValues = LoginSchema.safeParse(values);
   if (!validatedValues.success) {
     return {
@@ -94,7 +97,7 @@ export const login = async (values: z.infer<typeof LoginSchema>) => {
     await signIn("credentials", {
       email,
       password,
-      redirectTo: DEFAULT_LOGIN_REDIRECT,
+      redirectTo: callbackUrl || DEFAULT_LOGIN_REDIRECT,
     });
     return {
       success: "Success",
@@ -139,7 +142,7 @@ export const register = async (values: z.infer<typeof RegisterSchema>) => {
     },
   });
 
-  const verificationToken = await generateVerificationToken(email);
+  await generateVerificationToken(email);
   return {
     success: "Please check your email to confirm email!",
   };

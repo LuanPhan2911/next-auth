@@ -6,14 +6,15 @@ import { getUserById, updateUserEmailVerifiedById } from "./services/user";
 import { UserRole } from "@prisma/client";
 import { getTwoFactorConfirmationByUserId } from "./services/two-factor-confirmation";
 
+export type ExtendedUser = DefaultSession["user"] & {
+  role: UserRole;
+  isTwoFactor: boolean;
+};
 declare module "next-auth" {
   interface Session {
-    user: {
-      role: UserRole;
-    } & DefaultSession["user"];
+    user: ExtendedUser;
   }
 }
-
 export const { auth, handlers, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(db),
   pages: {
@@ -57,6 +58,9 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
       if (session.user && token.role) {
         session.user.role = token.role as UserRole;
       }
+      if (session.user && token.isTwoFactor) {
+        session.user.isTwoFactor = token.isTwoFactor as boolean;
+      }
 
       return session;
     },
@@ -69,6 +73,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         return token;
       }
       token.role = existingUser.role;
+      token.isTwoFactor = existingUser.isTwoFactorEnabled;
       return token;
     },
   },

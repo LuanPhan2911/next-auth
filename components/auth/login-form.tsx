@@ -27,6 +27,7 @@ export const LoginForm = () => {
   const searchParams = useSearchParams();
   const [showTwoFactor, setShowTwoFactor] = useState(false);
   const urlError = searchParams.get("error");
+  const callbackUrl = searchParams.get("callbackUrl");
   const [error, setError] = useState<string | undefined>("");
   const [success, setSuccess] = useState<string | undefined>("");
   const form = useForm<z.infer<typeof LoginSchema>>({
@@ -51,7 +52,7 @@ export const LoginForm = () => {
   const onSubmit = (values: z.infer<typeof LoginSchema>) => {
     startTransition(async () => {
       try {
-        const data = await login(values);
+        const data = await login(values, callbackUrl);
 
         if (data?.error) {
           form.reset();
